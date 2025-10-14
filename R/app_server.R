@@ -42,8 +42,9 @@ app_server <- function(input, output, session, .app_data, .dir) {
     # === REACTIVE: Get visible columns ===
     visible_cols <- shiny::reactive({
       cols <- input[[paste0(.tab_name, "_visible_cols")]]
+      # Default to showing ALL columns if none selected
       if (is.null(cols) || length(cols) == 0) {
-        return(character(0))
+        return(meta$model_cols)  # Show all columns by default
       }
       return(cols)
     })
