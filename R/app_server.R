@@ -64,13 +64,71 @@ app_server <- function(input, output, session, .app_data, .dir) {
       )
     })
     
+    # === OBSERVER: Update row choices dynamically for both dropdowns ===
+    shiny::observe({
+      tbl_data <- table_data()
+      
+      # Get unique term values from filtered data
+      row_choices <- unique(tbl_data[[meta$term_col]])
+      
+      # PRESERVE CURRENT SELECTIONS
+      # Use isolate() to read current selections WITHOUT creating reactive dependency
+      current_bold <- shiny::isolate(input[[paste0(.tab_name, "_bold_rows")]])
+      current_border <- shiny::isolate(input[[paste0(.tab_name, "_border_rows")]])
+      
+      # Keep only selections that still exist in the new filtered data
+      preserved_bold <- if (!is.null(current_bold)) {
+        intersect(current_bold, row_choices)
+      } else {
+        NULL
+      }
+      
+      preserved_border <- if (!is.null(current_border)) {
+        intersect(current_border, row_choices)
+      } else {
+        NULL
+      }
+      
+      # Update both dropdowns with same choices AND preserved selections
+      shiny::updateSelectizeInput(
+        session = session,
+        inputId = paste0(.tab_name, "_bold_rows"),
+        choices = row_choices,
+        selected = preserved_bold,
+        server = TRUE
+      )
+      
+      shiny::updateSelectizeInput(
+        session = session,
+        inputId = paste0(.tab_name, "_border_rows"),
+        choices = row_choices,
+        selected = preserved_border,
+        server = TRUE
+      )
+    })
+    
+    # === OUTPUT: Row count ===
+    output[[paste0(.tab_name, "_row_count")]] <- shiny::renderText({
+      filt_data <- filtered_data()
+      total_rows <- nrow(df)
+      filtered_rows <- nrow(filt_data)
+      
+      paste0("Showing ", filtered_rows, " of ", total_rows, " rows")
+    })
+    
     # === OUTPUT: Table ===
     output[[paste0(.tab_name, "_table")]] <- reactable::renderReactable({
       tbl_data <- table_data()
       
+      # Get formatting selections from BOTH dropdowns
+      bold_rows <- input[[paste0(.tab_name, "_bold_rows")]]
+      border_rows <- input[[paste0(.tab_name, "_border_rows")]]
+      
       render_comparison_table(
         .df = tbl_data,
-        .term_col = meta$term_col
+        .term_col = meta$term_col,
+        .bold_rows = bold_rows,
+        .border_rows = border_rows
       )
     })
     

@@ -70,7 +70,7 @@ create_panel_ui <- function(.tab_name, .metadata) {
     shiny::fluidRow(
       # Filters section
       shiny::column(
-        width = 9,
+        width = 7,
         shiny::h5(shiny::icon("filter"), "Filters"),
         shiny::fluidRow(
           purrr::map(.metadata$filter_cols, function(.col) {
@@ -88,10 +88,34 @@ create_panel_ui <- function(.tab_name, .metadata) {
         )
       ),
       
-      # Compact buttons section
+      # Formatting section
+      shiny::column(
+        width = 2,
+        shiny::h5(shiny::icon("paint-brush"), "Format Rows"),
+        shiny::selectizeInput(
+          inputId = paste0(.tab_name, "_bold_rows"),
+          label = "Bold:",
+          choices = NULL,  # Will be updated dynamically
+          selected = NULL,
+          multiple = TRUE,
+          width = "100%",
+          options = list(placeholder = 'Select rows...')
+        ),
+        shiny::selectizeInput(
+          inputId = paste0(.tab_name, "_border_rows"),
+          label = "Border:",
+          choices = NULL,  # Will be updated dynamically
+          selected = NULL,
+          multiple = TRUE,
+          width = "100%",
+          options = list(placeholder = 'Select rows...')
+        )
+      ),
+      
+      # Buttons section
       shiny::column(
         width = 3,
-        shiny::h5(" "),  # Spacer for alignment
+        shiny::h5(" "),  # Spacer
         
         # Column visibility button
         shiny::actionButton(
@@ -111,6 +135,12 @@ create_panel_ui <- function(.tab_name, .metadata) {
           width = "100%",
           class = "btn-warning",
           style = "margin-bottom: 10px;"
+        ),
+        
+        # Row counter
+        shiny::div(
+          style = "padding: 10px; background-color: #ffffff; border-radius: 4px; text-align: center; font-weight: 500;",
+          shiny::textOutput(paste0(.tab_name, "_row_count"))
         )
       )
     )
