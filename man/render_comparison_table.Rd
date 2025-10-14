@@ -4,12 +4,16 @@
 \alias{render_comparison_table}
 \title{Render Comparison Table}
 \usage{
-render_comparison_table(.df, .term_col)
+render_comparison_table(.df, .term_col, .bold_rows = NULL, .border_rows = NULL)
 }
 \arguments{
 \item{.df}{Dataframe to display (should only contain term + model columns)}
 
 \item{.term_col}{Character. Name of term column}
+
+\item{.bold_rows}{Character vector. Row term values to make bold (NULL if none)}
+
+\item{.border_rows}{Character vector. Row term values to add borders (NULL if none)}
 }
 \value{
 reactable object

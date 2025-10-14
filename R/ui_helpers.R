@@ -54,100 +54,6 @@ create_column_modal <- function(.tab_name, .model_cols, .current_selection) {
 }
 
 
-#' Create Panel UI
-#'
-#' Creates the complete UI for one panel
-#'
-#' @param .tab_name Character. Name of the current tab
-#' @param .metadata List. Metadata for the current table
-#' @return Shiny UI element
-#' @keywords internal
-create_panel_ui <- function(.tab_name, .metadata) {
-  
-  shiny::div(
-    style = "padding: 15px; background-color: #f8f9fa; border-radius: 4px; margin-bottom: 15px;",
-    
-    shiny::fluidRow(
-      # Filters section
-      shiny::column(
-        width = 7,
-        shiny::h5(shiny::icon("filter"), "Filters"),
-        shiny::fluidRow(
-          purrr::map(.metadata$filter_cols, function(.col) {
-            shiny::column(
-              width = 2,
-              shiny::selectInput(
-                inputId = paste0(.tab_name, "_filter_", .col),
-                label = paste0(.col, ":"),
-                choices = .metadata$filter_values[[.col]],
-                selected = .metadata$default_filters[[.col]],
-                width = "100%"
-              )
-            )
-          })
-        )
-      ),
-      
-      # Formatting section
-      shiny::column(
-        width = 2,
-        shiny::h5(shiny::icon("paint-brush"), "Format Rows"),
-        shiny::selectizeInput(
-          inputId = paste0(.tab_name, "_bold_rows"),
-          label = "Bold:",
-          choices = NULL,  # Will be updated dynamically
-          selected = NULL,
-          multiple = TRUE,
-          width = "100%",
-          options = list(placeholder = 'Select rows...')
-        ),
-        shiny::selectizeInput(
-          inputId = paste0(.tab_name, "_border_rows"),
-          label = "Border:",
-          choices = NULL,  # Will be updated dynamically
-          selected = NULL,
-          multiple = TRUE,
-          width = "100%",
-          options = list(placeholder = 'Select rows...')
-        )
-      ),
-      
-      # Buttons section
-      shiny::column(
-        width = 3,
-        shiny::h5(" "),  # Spacer
-        
-        # Column visibility button
-        shiny::actionButton(
-          inputId = paste0(.tab_name, "_show_column_modal"),
-          label = "Show/Hide Columns",
-          icon = shiny::icon("eye"),
-          width = "100%",
-          class = "btn-info",
-          style = "margin-bottom: 10px;"
-        ),
-        
-        # Reset button
-        shiny::actionButton(
-          inputId = paste0(.tab_name, "_reset"),
-          label = "Reset Filters",
-          icon = shiny::icon("refresh"),
-          width = "100%",
-          class = "btn-warning",
-          style = "margin-bottom: 10px;"
-        ),
-        
-        # Row counter
-        shiny::div(
-          style = "padding: 10px; background-color: #ffffff; border-radius: 4px; text-align: center; font-weight: 500;",
-          shiny::textOutput(paste0(.tab_name, "_row_count"))
-        )
-      )
-    )
-  )
-}
-
-
 #' Create Tab Panel for a Table
 #'
 #' Creates a complete tab with one table for viewing regressions
@@ -161,11 +67,98 @@ create_table_tab <- function(.tab_name, .metadata) {
     title = .tab_name,
     value = .tab_name,
     
-    # Single table section
-    shiny::div(
-      style = "padding: 20px;",
-      create_panel_ui(.tab_name = .tab_name, .metadata = .metadata),
-      reactable::reactableOutput(paste0(.tab_name, "_table"), height = "600px")
+    shiny::fluidRow(
+      # LEFT SIDEBAR: All Controls
+      shiny::column(
+        width = 2,
+        style = "padding: 20px; background-color: #f8f9fa; border-radius: 4px; margin-left: 15px; margin-top: 20px;",
+        
+        # === FILTERS SECTION ===
+        shiny::h5(shiny::icon("filter"), "Filters", style = "margin-bottom: 20px;"),
+        
+        # Filters stacked vertically
+        purrr::map(.metadata$filter_cols, function(.col) {
+          shiny::div(
+            style = "margin-bottom: 15px;",
+            shiny::selectInput(
+              inputId = paste0(.tab_name, "_filter_", .col),
+              label = paste0(.col, ":"),
+              choices = .metadata$filter_values[[.col]],
+              selected = .metadata$default_filters[[.col]],
+              width = "100%"
+            )
+          )
+        }),
+        
+        # Reset button
+        shiny::actionButton(
+          inputId = paste0(.tab_name, "_reset"),
+          label = "Reset Filters",
+          icon = shiny::icon("refresh"),
+          width = "100%",
+          class = "btn-warning",
+          style = "margin-top: 10px; margin-bottom: 20px;"
+        ),
+        
+        # Divider
+        shiny::hr(),
+        
+        # === FORMAT ROWS SECTION ===
+        shiny::h5(shiny::icon("paint-brush"), "Format Rows", style = "margin-bottom: 15px;"),
+        
+        shiny::selectizeInput(
+          inputId = paste0(.tab_name, "_bold_rows"),
+          label = "Bold:",
+          choices = NULL,  # Will be updated dynamically
+          selected = NULL,
+          multiple = TRUE,
+          width = "100%",
+          options = list(placeholder = 'Select rows...')
+        ),
+        
+        shiny::selectizeInput(
+          inputId = paste0(.tab_name, "_border_rows"),
+          label = "Border:",
+          choices = NULL,  # Will be updated dynamically
+          selected = NULL,
+          multiple = TRUE,
+          width = "100%",
+          options = list(placeholder = 'Select rows...')
+        ),
+        
+        # Divider
+        shiny::hr(),
+        
+        # === COLUMN VISIBILITY SECTION ===
+        shiny::h5(shiny::icon("eye"), "Columns", style = "margin-bottom: 15px;"),
+        
+        shiny::actionButton(
+          inputId = paste0(.tab_name, "_show_column_modal"),
+          label = "Show/Hide Columns",
+          icon = shiny::icon("eye"),
+          width = "100%",
+          class = "btn-info",
+          style = "margin-bottom: 15px;"
+        ),
+        
+        # Divider
+        shiny::hr(),
+        
+        # === ROW COUNTER ===
+        shiny::div(
+          style = "padding: 10px; background-color: #ffffff; border-radius: 4px; text-align: center; font-weight: 500;",
+          shiny::textOutput(paste0(.tab_name, "_row_count"))
+        )
+      ),
+      
+      # MAIN AREA: Just the Table
+      shiny::column(
+        width = 9,
+        style = "padding: 20px;",
+        
+        # Table (no top bar anymore - all controls are in sidebar)
+        reactable::reactableOutput(paste0(.tab_name, "_table"), height = "700px")
+      )
     )
   )
 }
