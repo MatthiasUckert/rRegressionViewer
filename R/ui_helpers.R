@@ -111,12 +111,6 @@ create_panel_ui <- function(.tab_name, .metadata) {
           width = "100%",
           class = "btn-warning",
           style = "margin-bottom: 10px;"
-        ),
-        
-        # Row counter
-        shiny::div(
-          style = "padding: 10px; background-color: #ffffff; border-radius: 4px; text-align: center; font-weight: 500;",
-          shiny::textOutput(paste0(.tab_name, "_row_count"))
         )
       )
     )

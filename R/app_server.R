@@ -64,15 +64,6 @@ app_server <- function(input, output, session, .app_data, .dir) {
       )
     })
     
-    # === OUTPUT: Row count ===
-    output[[paste0(.tab_name, "_row_count")]] <- shiny::renderText({
-      filt_data <- filtered_data()
-      total_rows <- nrow(df)
-      filtered_rows <- nrow(filt_data)
-      
-      paste0("Showing ", filtered_rows, " of ", total_rows, " rows")
-    })
-    
     # === OUTPUT: Table ===
     output[[paste0(.tab_name, "_table")]] <- reactable::renderReactable({
       tbl_data <- table_data()
