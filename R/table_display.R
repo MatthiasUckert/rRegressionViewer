@@ -42,8 +42,8 @@ render_comparison_table <- function(.df, .term_col, .bold_rows = NULL, .border_r
       whiteSpace = "normal",
       fontFamily = "'Times New Roman', Times, serif",
       verticalAlign = "middle",
-      paddingTop = "6px",
-      paddingBottom = "6px"
+      paddingTop = "4px",
+      paddingBottom = "4px"
     ),
     minWidth = 150,
     sticky = "left",
@@ -54,8 +54,8 @@ render_comparison_table <- function(.df, .term_col, .bold_rows = NULL, .border_r
       whiteSpace = "normal",
       borderBottom = "2px solid #333",
       borderTop = "2px solid #333",
-      paddingTop = "8px",
-      paddingBottom = "8px",
+      paddingTop = "6px",
+      paddingBottom = "6px",
       backgroundColor = "#ffffff",
       fontWeight = "600"
     )
@@ -72,8 +72,8 @@ render_comparison_table <- function(.df, .term_col, .bold_rows = NULL, .border_r
         whiteSpace = "normal",
         fontFamily = "'Times New Roman', Times, serif",
         verticalAlign = "middle",
-        paddingTop = "6px",
-        paddingBottom = "6px"
+        paddingTop = "4px",
+        paddingBottom = "4px"
       ),
       headerStyle = list(
         whiteSpace = "normal",
@@ -81,8 +81,8 @@ render_comparison_table <- function(.df, .term_col, .bold_rows = NULL, .border_r
         fontFamily = "'Times New Roman', Times, serif",
         borderBottom = "2px solid #333",
         borderTop = "2px solid #333",
-        paddingTop = "8px",
-        paddingBottom = "8px",
+        paddingTop = "6px",
+        paddingBottom = "6px",
         backgroundColor = "#ffffff",
         fontWeight = "600"
       )
@@ -110,10 +110,11 @@ render_comparison_table <- function(.df, .term_col, .bold_rows = NULL, .border_r
 
         if (boldRows.includes(termValue)) {
           style.fontWeight = 'bold';
+          style.backgroundColor = '#f0f0f0';  // Light grey shading
         }
 
         if (borderRows.includes(termValue)) {
-          style.borderBottom = '1px solid #666';
+          style.borderBottom = '1.5px solid #666';
         }
 
         if (Object.keys(style).length > 0) {
@@ -139,16 +140,16 @@ render_comparison_table <- function(.df, .term_col, .bold_rows = NULL, .border_r
         whiteSpace = "normal",
         textAlign = "center",
         fontFamily = "'Times New Roman', Times, serif",
-        borderBottom = "1px solid #333",
-        borderTop = "1px solid #333",
-        paddingTop = "6px",
-        paddingBottom = "6px"
+        borderBottom = "2px solid #333",
+        borderTop = "2px solid #333",
+        paddingTop = "4px",
+        paddingBottom = "4px"
       ),
       style = list(
         fontFamily = "'Times New Roman', Times, serif",
         verticalAlign = "middle",
-        paddingTop = "4px",
-        paddingBottom = "4px"
+        paddingTop = "2px",
+        paddingBottom = "2px"
       )
     ),
     rowStyle = row_style,
@@ -169,7 +170,7 @@ render_comparison_table <- function(.df, .term_col, .bold_rows = NULL, .border_r
       highlightColor = "#f8f9fa",
       style = list(
         fontFamily = "'Times New Roman', Times, serif",
-        fontSize = "14px"
+        fontSize = "13px"
       ),
       headerStyle = list(
         borderBottom = "1px solid #333",
