@@ -122,8 +122,18 @@ create_table_tab <- function(.tab_name, .metadata) {
         ),
         
         shiny::selectizeInput(
-          inputId = paste0(.tab_name, "_border_rows"),
-          label = "Border:",
+          inputId = paste0(.tab_name, "_border_top_rows"),
+          label = "Border Top:",
+          choices = initial_row_choices,  # Initialize with actual choices
+          selected = NULL,
+          multiple = TRUE,
+          width = "100%",
+          options = list(placeholder = 'Select rows...')
+        ),
+        
+        shiny::selectizeInput(
+          inputId = paste0(.tab_name, "_border_bottom_rows"),
+          label = "Border Bottom:",
           choices = initial_row_choices,  # Initialize with actual choices
           selected = NULL,
           multiple = TRUE,

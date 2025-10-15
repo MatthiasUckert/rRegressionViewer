@@ -5,10 +5,11 @@
 #' @param .df Dataframe to display (should only contain term + model columns)
 #' @param .term_col Character. Name of term column
 #' @param .bold_rows Character vector. Row term values to make bold (NULL if none)
-#' @param .border_rows Character vector. Row term values to add borders (NULL if none)
+#' @param .border_top_rows Character vector. Row term values to add top borders (NULL if none)
+#' @param .border_bottom_rows Character vector. Row term values to add bottom borders (NULL if none)
 #' @return reactable object
 #' @keywords internal
-render_comparison_table <- function(.df, .term_col, .bold_rows = NULL, .border_rows = NULL) {
+render_comparison_table <- function(.df, .term_col, .bold_rows = NULL, .border_top_rows = NULL, .border_bottom_rows = NULL) {
   if (nrow(.df) == 0) {
     return(
       reactable::reactable(
@@ -92,18 +93,21 @@ render_comparison_table <- function(.df, .term_col, .bold_rows = NULL, .border_r
   # Create row styling function if formatting is needed
   row_style <- NULL
   has_bold <- !is.null(.bold_rows) && length(.bold_rows) > 0
-  has_border <- !is.null(.border_rows) && length(.border_rows) > 0
+  has_border_top <- !is.null(.border_top_rows) && length(.border_top_rows) > 0
+  has_border_bottom <- !is.null(.border_bottom_rows) && length(.border_bottom_rows) > 0
   
-  if (has_bold || has_border) {
+  if (has_bold || has_border_top || has_border_bottom) {
     # Convert to HTML format to match the formatted data
     bold_rows_html <- if (has_bold) gsub("\n", "<br>", .bold_rows, fixed = TRUE) else character(0)
-    border_rows_html <- if (has_border) gsub("\n", "<br>", .border_rows, fixed = TRUE) else character(0)
+    border_top_rows_html <- if (has_border_top) gsub("\n", "<br>", .border_top_rows, fixed = TRUE) else character(0)
+    border_bottom_rows_html <- if (has_border_bottom) gsub("\n", "<br>", .border_bottom_rows, fixed = TRUE) else character(0)
     
     row_style <- reactable::JS(sprintf(
       "
       function(rowInfo) {
         var boldRows = %s;
-        var borderRows = %s;
+        var borderTopRows = %s;
+        var borderBottomRows = %s;
         var termValue = rowInfo.row['%s'];
 
         var style = {};
@@ -113,7 +117,11 @@ render_comparison_table <- function(.df, .term_col, .bold_rows = NULL, .border_r
           style.backgroundColor = '#f0f0f0';  // Light grey shading
         }
 
-        if (borderRows.includes(termValue)) {
+        if (borderTopRows.includes(termValue)) {
+          style.borderTop = '1.5px solid #666';
+        }
+
+        if (borderBottomRows.includes(termValue)) {
           style.borderBottom = '1.5px solid #666';
         }
 
@@ -123,7 +131,8 @@ render_comparison_table <- function(.df, .term_col, .bold_rows = NULL, .border_r
       }
     ",
       jsonlite::toJSON(bold_rows_html),
-      jsonlite::toJSON(border_rows_html),
+      jsonlite::toJSON(border_top_rows_html),
+      jsonlite::toJSON(border_bottom_rows_html),
       term_col_formatted
     ))
   }
@@ -140,8 +149,8 @@ render_comparison_table <- function(.df, .term_col, .bold_rows = NULL, .border_r
         whiteSpace = "normal",
         textAlign = "center",
         fontFamily = "'Times New Roman', Times, serif",
-        borderBottom = "2px solid #333",
-        borderTop = "2px solid #333",
+        borderBottom = "1px solid #333",
+        borderTop = "1px solid #333",
         paddingTop = "4px",
         paddingBottom = "4px"
       ),

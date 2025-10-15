@@ -75,9 +75,9 @@ prepare_app_data <- function(.data_list) {
     col_info <- detect_column_types(.df = .df)
     default_filters <- get_default_filter_values(.df = .df, .filter_cols = col_info$filter_cols)
     
-    # Calculate initial row choices based on default filters
-    initial_filtered_data <- apply_filters(.df = .df, .filter_values = default_filters)
-    initial_row_choices <- unique(initial_filtered_data[[col_info$term_col]])
+    # Get ALL unique row names from the entire dataset (not just default filters)
+    # This ensures all possible row names are available in the dropdown from the start
+    all_row_choices <- unique(.df[[col_info$term_col]])
     
     list(
       filter_cols = col_info$filter_cols,
@@ -85,7 +85,7 @@ prepare_app_data <- function(.data_list) {
       model_cols = col_info$model_cols,
       filter_values = get_unique_filter_values(.df = .df, .filter_cols = col_info$filter_cols),
       default_filters = default_filters,
-      initial_row_choices = initial_row_choices,
+      initial_row_choices = all_row_choices,  # All possible row names
       n_rows = nrow(.df),
       n_models = length(col_info$model_cols)
     )

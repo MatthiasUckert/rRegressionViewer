@@ -64,7 +64,7 @@ app_server <- function(input, output, session, .app_data, .dir) {
       )
     })
     
-    # === OBSERVER: Update row choices dynamically for both dropdowns ===
+    # === OBSERVER: Update row choices dynamically for all format dropdowns ===
     # Trigger whenever any filter changes
     shiny::observeEvent({
       # Create a list of all filter inputs to watch
@@ -97,7 +97,7 @@ app_server <- function(input, output, session, .app_data, .dir) {
       # Check if we have data
       if (is.null(filt_data) || nrow(filt_data) == 0) {
         print("No filtered data, clearing dropdowns")
-        # If no data, clear the dropdowns
+        # If no data, clear all the dropdowns
         shiny::updateSelectizeInput(
           session = session,
           inputId = paste0(.tab_name, "_bold_rows"),
@@ -107,7 +107,14 @@ app_server <- function(input, output, session, .app_data, .dir) {
         
         shiny::updateSelectizeInput(
           session = session,
-          inputId = paste0(.tab_name, "_border_rows"),
+          inputId = paste0(.tab_name, "_border_top_rows"),
+          choices = character(0),
+          selected = NULL
+        )
+        
+        shiny::updateSelectizeInput(
+          session = session,
+          inputId = paste0(.tab_name, "_border_bottom_rows"),
           choices = character(0),
           selected = NULL
         )
@@ -123,7 +130,8 @@ app_server <- function(input, output, session, .app_data, .dir) {
       # PRESERVE CURRENT SELECTIONS
       # Use isolate() to read current selections WITHOUT creating reactive dependency
       current_bold <- shiny::isolate(input[[paste0(.tab_name, "_bold_rows")]])
-      current_border <- shiny::isolate(input[[paste0(.tab_name, "_border_rows")]])
+      current_border_top <- shiny::isolate(input[[paste0(.tab_name, "_border_top_rows")]])
+      current_border_bottom <- shiny::isolate(input[[paste0(.tab_name, "_border_bottom_rows")]])
       
       # Keep only selections that still exist in the new filtered data
       preserved_bold <- if (!is.null(current_bold) && length(current_bold) > 0) {
@@ -132,13 +140,19 @@ app_server <- function(input, output, session, .app_data, .dir) {
         NULL
       }
       
-      preserved_border <- if (!is.null(current_border) && length(current_border) > 0) {
-        intersect(current_border, row_choices)
+      preserved_border_top <- if (!is.null(current_border_top) && length(current_border_top) > 0) {
+        intersect(current_border_top, row_choices)
       } else {
         NULL
       }
       
-      # Update both dropdowns with same choices AND preserved selections
+      preserved_border_bottom <- if (!is.null(current_border_bottom) && length(current_border_bottom) > 0) {
+        intersect(current_border_bottom, row_choices)
+      } else {
+        NULL
+      }
+      
+      # Update all three dropdowns with same choices AND preserved selections
       print("Updating selectize inputs...")
       shiny::updateSelectizeInput(
         session = session,
@@ -149,9 +163,16 @@ app_server <- function(input, output, session, .app_data, .dir) {
       
       shiny::updateSelectizeInput(
         session = session,
-        inputId = paste0(.tab_name, "_border_rows"),
+        inputId = paste0(.tab_name, "_border_top_rows"),
         choices = row_choices,
-        selected = preserved_border
+        selected = preserved_border_top
+      )
+      
+      shiny::updateSelectizeInput(
+        session = session,
+        inputId = paste0(.tab_name, "_border_bottom_rows"),
+        choices = row_choices,
+        selected = preserved_border_bottom
       )
       
       print("Selectize inputs updated successfully!")
@@ -171,15 +192,17 @@ app_server <- function(input, output, session, .app_data, .dir) {
     output[[paste0(.tab_name, "_table")]] <- reactable::renderReactable({
       tbl_data <- table_data()
       
-      # Get formatting selections from BOTH dropdowns
+      # Get formatting selections from ALL dropdowns
       bold_rows <- input[[paste0(.tab_name, "_bold_rows")]]
-      border_rows <- input[[paste0(.tab_name, "_border_rows")]]
+      border_top_rows <- input[[paste0(.tab_name, "_border_top_rows")]]
+      border_bottom_rows <- input[[paste0(.tab_name, "_border_bottom_rows")]]
       
       render_comparison_table(
         .df = tbl_data,
         .term_col = meta$term_col,
         .bold_rows = bold_rows,
-        .border_rows = border_rows
+        .border_top_rows = border_top_rows,
+        .border_bottom_rows = border_bottom_rows
       )
     })
     
