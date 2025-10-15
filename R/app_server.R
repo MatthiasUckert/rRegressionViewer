@@ -65,11 +65,60 @@ app_server <- function(input, output, session, .app_data, .dir) {
     })
     
     # === OBSERVER: Update row choices dynamically for both dropdowns ===
-    shiny::observe({
-      tbl_data <- table_data()
+    # Trigger whenever any filter changes
+    shiny::observeEvent({
+      # Create a list of all filter inputs to watch
+      lapply(meta$filter_cols, function(.col) {
+        input[[paste0(.tab_name, "_filter_", .col)]]
+      })
+    }, {
+      print(paste("=== Observer triggered for tab:", .tab_name, "==="))
+      
+      # Get all filter values
+      filters <- purrr::map(meta$filter_cols, function(.col) {
+        input[[paste0(.tab_name, "_filter_", .col)]]
+      }) |>
+        purrr::set_names(meta$filter_cols)
+      
+      print(paste("Filters:", paste(names(filters), "=", filters, collapse=", ")))
+      
+      # If any filter is NULL, return early
+      if (any(sapply(filters, is.null))) {
+        print("Some filters are NULL, returning early")
+        return()
+      }
+      
+      # Get filtered data
+      filt_data <- get_filtered_data(.df = df, .filters = filters)
+      
+      print(paste("Filtered data rows:", nrow(filt_data)))
+      print(paste("Term column name:", meta$term_col))
+      
+      # Check if we have data
+      if (is.null(filt_data) || nrow(filt_data) == 0) {
+        print("No filtered data, clearing dropdowns")
+        # If no data, clear the dropdowns
+        shiny::updateSelectizeInput(
+          session = session,
+          inputId = paste0(.tab_name, "_bold_rows"),
+          choices = character(0),
+          selected = NULL
+        )
+        
+        shiny::updateSelectizeInput(
+          session = session,
+          inputId = paste0(.tab_name, "_border_rows"),
+          choices = character(0),
+          selected = NULL
+        )
+        return()
+      }
       
       # Get unique term values from filtered data
-      row_choices <- unique(tbl_data[[meta$term_col]])
+      row_choices <- unique(filt_data[[meta$term_col]])
+      
+      print(paste("Row choices count:", length(row_choices)))
+      print(paste("First 5 row choices:", paste(utils::head(row_choices, 5), collapse=", ")))
       
       # PRESERVE CURRENT SELECTIONS
       # Use isolate() to read current selections WITHOUT creating reactive dependency
@@ -77,35 +126,37 @@ app_server <- function(input, output, session, .app_data, .dir) {
       current_border <- shiny::isolate(input[[paste0(.tab_name, "_border_rows")]])
       
       # Keep only selections that still exist in the new filtered data
-      preserved_bold <- if (!is.null(current_bold)) {
+      preserved_bold <- if (!is.null(current_bold) && length(current_bold) > 0) {
         intersect(current_bold, row_choices)
       } else {
         NULL
       }
       
-      preserved_border <- if (!is.null(current_border)) {
+      preserved_border <- if (!is.null(current_border) && length(current_border) > 0) {
         intersect(current_border, row_choices)
       } else {
         NULL
       }
       
       # Update both dropdowns with same choices AND preserved selections
+      print("Updating selectize inputs...")
       shiny::updateSelectizeInput(
         session = session,
         inputId = paste0(.tab_name, "_bold_rows"),
         choices = row_choices,
-        selected = preserved_bold,
-        server = TRUE
+        selected = preserved_bold
       )
       
       shiny::updateSelectizeInput(
         session = session,
         inputId = paste0(.tab_name, "_border_rows"),
         choices = row_choices,
-        selected = preserved_border,
-        server = TRUE
+        selected = preserved_border
       )
-    })
+      
+      print("Selectize inputs updated successfully!")
+      
+    }, ignoreNULL = FALSE, ignoreInit = FALSE)
     
     # === OUTPUT: Row count ===
     output[[paste0(.tab_name, "_row_count")]] <- shiny::renderText({

@@ -73,13 +73,19 @@ prepare_app_data <- function(.data_list) {
   # Extract metadata for each table
   metadata <- purrr::map(.data_list, function(.df) {
     col_info <- detect_column_types(.df = .df)
+    default_filters <- get_default_filter_values(.df = .df, .filter_cols = col_info$filter_cols)
+    
+    # Calculate initial row choices based on default filters
+    initial_filtered_data <- apply_filters(.df = .df, .filter_values = default_filters)
+    initial_row_choices <- unique(initial_filtered_data[[col_info$term_col]])
     
     list(
       filter_cols = col_info$filter_cols,
       term_col = col_info$term_col,
       model_cols = col_info$model_cols,
       filter_values = get_unique_filter_values(.df = .df, .filter_cols = col_info$filter_cols),
-      default_filters = get_default_filter_values(.df = .df, .filter_cols = col_info$filter_cols),
+      default_filters = default_filters,
+      initial_row_choices = initial_row_choices,
       n_rows = nrow(.df),
       n_models = length(col_info$model_cols)
     )

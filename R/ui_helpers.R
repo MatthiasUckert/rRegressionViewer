@@ -63,6 +63,11 @@ create_column_modal <- function(.tab_name, .model_cols, .current_selection) {
 #' @return Shiny tabPanel
 #' @keywords internal
 create_table_tab <- function(.tab_name, .metadata) {
+  
+  # Calculate initial row choices based on default filters
+  # This happens once when UI is created
+  initial_row_choices <- .metadata$initial_row_choices
+  
   shiny::tabPanel(
     title = .tab_name,
     value = .tab_name,
@@ -109,7 +114,7 @@ create_table_tab <- function(.tab_name, .metadata) {
         shiny::selectizeInput(
           inputId = paste0(.tab_name, "_bold_rows"),
           label = "Bold:",
-          choices = NULL,  # Will be updated dynamically
+          choices = initial_row_choices,  # Initialize with actual choices
           selected = NULL,
           multiple = TRUE,
           width = "100%",
@@ -119,7 +124,7 @@ create_table_tab <- function(.tab_name, .metadata) {
         shiny::selectizeInput(
           inputId = paste0(.tab_name, "_border_rows"),
           label = "Border:",
-          choices = NULL,  # Will be updated dynamically
+          choices = initial_row_choices,  # Initialize with actual choices
           selected = NULL,
           multiple = TRUE,
           width = "100%",
