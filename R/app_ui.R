@@ -9,14 +9,20 @@ app_ui <- function(.app_data) {
   
   tab_names <- names(.app_data$data)
   
-  # Create tabs dynamically
-  tabs <- purrr::map2(
+  # Create table tabs dynamically
+  table_tabs <- purrr::map2(
     tab_names,
     .app_data$metadata,
     function(.name, .meta) {
       create_table_tab(.tab_name = .name, .metadata = .meta)
     }
   )
+  
+  # Create significance tab
+  sig_tab <- create_significance_tab(.app_data = .app_data)
+  
+  # Combine all tabs
+  all_tabs <- c(table_tabs, list(sig_tab))
   
   shiny::fluidPage(
     # Custom CSS
@@ -92,6 +98,6 @@ app_ui <- function(.app_data) {
     shiny::br(),
     
     # Tab navigation
-    do.call(shiny::tabsetPanel, c(list(id = "main_tabs", type = "tabs"), tabs))
+    do.call(shiny::tabsetPanel, c(list(id = "main_tabs", type = "tabs"), all_tabs))
   )
 }

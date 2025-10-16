@@ -54,7 +54,90 @@ create_column_modal <- function(.tab_name, .model_cols, .current_selection) {
 }
 
 
-#' Create Tab Panel for a Table
+#' Create Significance Overview Tab
+#'
+#' Creates the significance visualization tab
+#'
+#' @param .app_data List with 'data' and 'metadata' elements
+#' @return Shiny tabPanel
+#' @keywords internal
+create_significance_tab <- function(.app_data) {
+  
+  tab_names <- names(.app_data$data)
+  
+  # Get first table's metadata for initial setup
+  first_meta <- .app_data$metadata[[1]]
+  
+  shiny::tabPanel(
+    title = "Significance Overview",
+    value = "significance_tab",
+    
+    shiny::fluidRow(
+      # LEFT SIDEBAR: Controls
+      shiny::column(
+        width = 3,
+        style = "padding: 20px; background-color: #f8f9fa; border-radius: 4px; margin-left: 15px; margin-top: 20px;",
+        
+        # === TABLE SELECTION ===
+        shiny::h5(shiny::icon("table"), "Select Table", style = "margin-bottom: 15px;"),
+        shiny::selectInput(
+          inputId = "sig_table_select",
+          label = "Table:",
+          choices = tab_names,
+          selected = tab_names[1],
+          width = "100%"
+        ),
+        
+        shiny::hr(),
+        
+        # === FILTERS SECTION ===
+        shiny::h5(shiny::icon("filter"), "Filters", style = "margin-bottom: 15px;"),
+        shiny::div(id = "sig_filters_container"),
+        
+        shiny::hr(),
+        
+        # === VARIABLE SELECTION ===
+        shiny::h5(shiny::icon("chart-line"), "Plot Settings", style = "margin-bottom: 15px;"),
+        
+        shiny::selectInput(
+          inputId = "sig_variable",
+          label = "Variable to Plot:",
+          choices = NULL,
+          width = "100%"
+        ),
+        
+        shiny::selectInput(
+          inputId = "sig_model",
+          label = "Model Column:",
+          choices = NULL,
+          width = "100%"
+        ),
+        
+        shiny::selectInput(
+          inputId = "sig_x_axis",
+          label = "X-Axis:",
+          choices = NULL,
+          width = "100%"
+        ),
+        
+        shiny::selectInput(
+          inputId = "sig_y_axis",
+          label = "Y-Axis:",
+          choices = NULL,
+          width = "100%"
+        )
+      ),
+      
+      # MAIN AREA: Plot
+      shiny::column(
+        width = 8,
+        style = "padding: 20px;",
+        
+        shiny::plotOutput("sig_plot", height = "800px")
+      )
+    )
+  )
+}
 #'
 #' Creates a complete tab with one table for viewing regressions
 #'
