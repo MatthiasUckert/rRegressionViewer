@@ -2,7 +2,7 @@
 % Please edit documentation in R/ui_helpers.R
 \name{create_table_tab}
 \alias{create_table_tab}
-\title{Create Tab Panel for a Table}
+\title{Creates a complete tab with one table for viewing regressions}
 \usage{
 create_table_tab(.tab_name, .metadata)
 }
