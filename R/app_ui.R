@@ -21,10 +21,16 @@ app_ui <- function(.app_data) {
   # Create significance tab
   sig_tab <- create_significance_tab(.app_data = .app_data)
   
+  # Create table formatter tab
+  fmt_tab <- create_formatter_tab(.app_data = .app_data)
+  
   # Combine all tabs
-  all_tabs <- c(table_tabs, list(sig_tab))
+  all_tabs <- c(table_tabs, list(sig_tab), list(fmt_tab))
   
   shiny::fluidPage(
+    # ⭐ Initialize shinyjs - CRITICAL for show/hide functionality
+    shinyjs::useShinyjs(),
+    
     # Custom CSS
     shiny::tags$head(
       shiny::tags$style(shiny::HTML("

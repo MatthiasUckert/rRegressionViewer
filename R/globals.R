@@ -15,6 +15,7 @@ utils::globalVariables(c(
   "Estimate",
   "Stars",
   "sign",
+  "model",
   
   # From create_significance_plot function
   "abs_estimate"

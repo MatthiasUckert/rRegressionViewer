@@ -54,6 +54,127 @@ create_column_modal <- function(.tab_name, .model_cols, .current_selection) {
 }
 
 
+#' Create Table Formatter Tab
+#'
+#' Creates the table formatter tab for filling Excel templates
+#'
+#' @param .app_data List with 'data' and 'metadata' elements
+#' @return Shiny tabPanel
+#' @keywords internal
+create_formatter_tab <- function(.app_data) {
+  
+  shiny::tabPanel(
+    title = "Table Formatter",
+    value = "formatter_tab",
+    
+    shiny::fluidRow(
+      # LEFT SIDEBAR: Controls
+      shiny::column(
+        width = 2,
+        style = "padding: 15px; background-color: #f8f9fa; border-radius: 4px; margin-left: 15px; margin-top: 20px;",
+        
+        # === TEMPLATE UPLOAD ===
+        shiny::h5(shiny::icon("upload"), " Template", style = "margin-bottom: 10px; font-size: 14px;"),
+        shiny::fileInput(
+          inputId = "fmt_template_file",
+          label = NULL,
+          accept = c(".xlsx"),
+          width = "100%",
+          buttonLabel = "Browse...",
+          placeholder = "No file"
+        ),
+        
+        shiny::hr(style = "margin: 10px 0;"),
+        
+        # === SHEET SELECTION ===
+        shiny::h5(shiny::icon("file-excel"), " Sheet", style = "margin-bottom: 10px; font-size: 14px;"),
+        shiny::selectInput(
+          inputId = "fmt_sheet_select",
+          label = NULL,
+          choices = NULL,
+          width = "100%"
+        ),
+        
+        # === TABLE MAPPING ===
+        shiny::selectInput(
+          inputId = "fmt_table_mapping",
+          label = "Map to:",
+          choices = NULL,
+          width = "100%"
+        ),
+        
+        shiny::hr(style = "margin: 10px 0;"),
+        
+        # === FILTERS SECTION ===
+        shiny::div(
+          id = "fmt_filters_section",
+          style = "display: none;",
+          shiny::h5(shiny::icon("filter"), " Filters", style = "margin-bottom: 10px; font-size: 14px;"),
+          shiny::uiOutput("fmt_filters_ui")
+        ),
+        
+        shiny::hr(style = "margin: 10px 0;"),
+        
+        # === EXPORT ===
+        shiny::downloadButton(
+          outputId = "fmt_download",
+          label = "Fill & Download",
+          class = "btn-success",
+          style = "width: 100%; margin-top: 10px;"
+        )
+      ),
+      
+      # MAIN AREA: Mapping Interface
+      shiny::column(
+        width = 9,
+        style = "padding: 20px;",
+        
+        # Row and Column Mapping Side by Side
+        shiny::fluidRow(
+          # Column Mapping (Left)
+          shiny::column(
+            width = 6,
+            shiny::div(
+              id = "fmt_columns_section",
+              style = "background-color: white; padding: 15px; border-radius: 4px; margin-bottom: 15px; display: none;",
+              shiny::h4(shiny::icon("columns"), " Column Mapping", style = "margin-top: 0; margin-bottom: 15px; font-size: 18px;"),
+              shiny::uiOutput("fmt_column_mapping_ui")
+            )
+          ),
+          
+          # Row Mapping (Right)
+          shiny::column(
+            width = 6,
+            shiny::div(
+              id = "fmt_rows_section",
+              style = "background-color: white; padding: 15px; border-radius: 4px; margin-bottom: 15px; display: none;",
+              shiny::h4(shiny::icon("bars"), " Row Mapping", style = "margin-top: 0; margin-bottom: 15px; font-size: 18px;"),
+              shiny::uiOutput("fmt_row_mapping_ui")
+            )
+          )
+        ),
+        
+        # Preview Section (Full Width)
+        shiny::fluidRow(
+          shiny::column(
+            width = 12,
+            shiny::div(
+              id = "fmt_preview_section",
+              style = "background-color: white; padding: 15px; border-radius: 4px; display: none;",
+              shiny::h4(shiny::icon("eye"), " Preview", style = "margin-top: 0; margin-bottom: 15px; font-size: 18px;"),
+              shiny::div(
+                style = "overflow-x: auto;",
+                shiny::uiOutput("fmt_preview_table")
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+}
+
+
 #' Create Significance Overview Tab
 #'
 #' Creates the significance visualization tab
@@ -138,6 +259,9 @@ create_significance_tab <- function(.app_data) {
     )
   )
 }
+
+
+#' Create Table Tab
 #'
 #' Creates a complete tab with one table for viewing regressions
 #'
