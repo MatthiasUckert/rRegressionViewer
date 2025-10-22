@@ -2,10 +2,10 @@ library(tidyverse)
 .path_template <- "/Users/matthiasuckert/Dropbox/MyPapers/TerminologyPaper/TerminologyPaper/TableTemplatesTest.xlsx"
 .path_regressions <- "/Users/matthiasuckert/RProjects/Projects/pTerminology/2_output/31-Regressions/Output/FinalRegressions.rds"
 
-# run_regression_comparison(
-#   .path = "/Users/matthiasuckert/RProjects/Projects/pTerminology/2_output/31-Regressions/Output/FinalRegressions.rds",
-#   .dir = "/Users/matthiasuckert/Downloads/TEST"
-# )
+run_regression_comparison(
+  .path = "/Users/matthiasuckert/RProjects/Projects/pTerminology/2_output/31-Regressions/Output/FinalRegressions.rds",
+  .dir = "/Users/matthiasuckert/Downloads/TEST"
+)
 
 
 .path_template <- "/Users/matthiasuckert/Dropbox/MyPapers/TerminologyPaper/TerminologyPaper/TableTemplatesTest.xlsx"

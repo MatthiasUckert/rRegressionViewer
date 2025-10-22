@@ -1,198 +1,109 @@
 #' Read Excel Template and Detect Structure
 #'
-#' Reads the Excel template matrix exactly as-is and identifies all column headers and row labels
+#' Reads template using column/row identifiers (ID="C", column V) and "_" placeholders
 #'
 #' @param .path Character. Path to template Excel file
 #' @return List with template info for each sheet
 #' @keywords internal
 read_template_structure <- function(.path) {
   
-  # Get all sheet names
   wb <- openxlsx2::wb_load(.path)
   sheet_names <- openxlsx2::wb_get_sheet_names(wb)
   
-  # Process each sheet
   template_info <- purrr::map(sheet_names, function(.sheet) {
     
-    # Load workbook
-    wb <- openxlsx2::wb_load(.path)
+    message("\n=== Reading Sheet: ", .sheet, " ===")
     
-    # ⭐ Read full sheet as-is - NO assumptions about structure
-    full_data <- openxlsx2::wb_to_df(
+    # Read with column names from row 1
+    tab_ <- openxlsx2::wb_to_df(
       wb,
       sheet = .sheet,
-      col_names = FALSE,
+      col_names = TRUE,
       start_row = 1
     )
     
-    message("\n=== Reading Sheet: ", .sheet, " ===")
-    message("Sheet dimensions: ", nrow(full_data), " rows x ", ncol(full_data), " columns")
+    message("  Sheet dimensions: ", nrow(tab_), " rows x ", ncol(tab_), " columns")
     
-    # Find corner markers in the actual matrix
-    markers <- find_corner_markers(full_data)
-    
-    if (is.null(markers)) {
-      warning("Could not find corner markers (LU, RU, LB, RB) in sheet: ", .sheet)
+    # Check if ID and V columns exist
+    if (!"ID" %in% names(tab_) || !"V" %in% names(tab_)) {
+      warning("Sheet '", .sheet, "' must have 'ID' and 'V' columns in row 1")
       return(NULL)
     }
     
-    message("Markers found:")
-    message("  LU: row ", markers$lu_row, ", col ", markers$lu_col)
-    message("  RU: row ", markers$ru_row, ", col ", markers$ru_col)
-    message("  LB: row ", markers$lb_row, ", col ", markers$lb_col)
-    message("  RB: row ", markers$rb_row, ", col ", markers$rb_col)
-    message("  CS: row ", markers$cs_row, ", col ", markers$cs_col)
-    message("  CE: row ", markers$ce_row, ", col ", markers$ce_col)
+    # Get column mappings from the "C" row (where ID == "C")
+    cols_ <- tab_ |>
+      dplyr::filter(ID == "C") |>
+      dplyr::select(dplyr::starts_with("C")) |>
+      tidyr::pivot_longer(dplyr::everything(), names_to = "ColName", values_to = "TabName") |>
+      dplyr::left_join(
+        tibble::tibble(
+          ColNum = seq_len(ncol(tab_)),
+          ColName = colnames(tab_)
+        ),
+        by = "ColName"
+      )
     
-    # ⭐ STEP 1: Extract column headers from CS row
-    # Read from CS column to CE column in the CS row
-    cs_row <- markers$cs_row
-    start_col <- markers$cs_col + 1  # Skip the CS marker itself
-    end_col <- markers$ce_col - 1     # Stop before CE marker
+    # Get row labels from "V" column
+    rows_ <- tibble::tibble(
+      RowNum = seq_len(nrow(tab_)),
+      RowName = tab_$V
+    )
     
-    message("\nReading column headers from row ", cs_row, ", columns ", start_col, " to ", end_col)
+    # Find all cells with "_" placeholder
+    placeholder_cells <- tibble::as_tibble(which(tab_ == "_", arr.ind = TRUE)) |>
+      dplyr::rename(RowNum = row, ColNum = col) |>
+      dplyr::left_join(cols_, by = "ColNum") |>
+      dplyr::left_join(rows_, by = "RowNum") |>
+      dplyr::filter(!is.na(TabName), !is.na(RowName)) |>
+      dplyr::select(RowNum, ColNum, TabName, RowName) %>% 
+      dplyr::mutate(RowNum = RowNum + 1L)
     
-    col_positions <- list()
-    for (excel_col in start_col:end_col) {
-      header_value <- as.character(full_data[cs_row, excel_col])
-      
-      # Debug: show what we're reading
-      message("  Col ", excel_col, ": '", header_value, "'")
-      
-      # Skip the first column after CS (that's the row labels column)
-      if (excel_col == start_col) {
-        message("    -> SKIPPED (row labels column)")
-        next
-      }
-      
-      # Only include non-empty headers
-      if (!is.na(header_value) && header_value != "" && header_value != "NA") {
-        col_positions[[length(col_positions) + 1]] <- list(
-          header = header_value,
-          excel_col = excel_col
-        )
-      }
-    }
+    # Convert to list format for compatibility
+    placeholder_list <- purrr::pmap(placeholder_cells, function(RowNum, ColNum, TabName, RowName) {
+      list(
+        excel_row = RowNum,
+        excel_col = ColNum,
+        col_header = as.character(TabName),
+        row_label = as.character(RowName)
+      )
+    })
     
-    # ⭐ STEP 2: Extract row labels
-    # Read from row after CS to row before LB, in the first data column (CS_col + 1)
-    row_label_col <- markers$cs_col + 1
-    start_row <- markers$cs_row + 1
-    end_row <- markers$lb_row - 1
-    
-    message("\nReading row labels from column ", row_label_col, ", rows ", start_row, " to ", end_row)
-    
-    row_positions <- list()
-    for (excel_row in start_row:end_row) {
-      label_value <- as.character(full_data[excel_row, row_label_col])
-      
-      # Debug: show first 10 rows
-      if (excel_row - start_row < 10) {
-        message("  Row ", excel_row, ": '", label_value, "'")
-      }
-      
-      # Only include non-empty labels
-      if (!is.na(label_value) && label_value != "" && label_value != "NA") {
-        row_positions[[length(row_positions) + 1]] <- list(
-          label = label_value,
-          excel_row = excel_row
-        )
+    # Get unique headers and labels (for UI) - preserve order of first appearance
+    col_headers <- character()
+    for (cell in placeholder_list) {
+      if (!cell$col_header %in% col_headers) {
+        col_headers <- c(col_headers, cell$col_header)
       }
     }
     
-    if (end_row - start_row >= 10) {
-      message("  ... (", length(row_positions), " total row labels)")
+    row_labels <- character()
+    for (cell in placeholder_list) {
+      if (!cell$row_label %in% row_labels) {
+        row_labels <- c(row_labels, cell$row_label)
+      }
     }
     
-    # Extract for UI
-    col_headers <- sapply(col_positions, function(x) x$header)
-    row_labels <- sapply(row_positions, function(x) x$label)
-    
-    # Summary
-    message("\nSummary:")
-    message("  Column headers (", length(col_headers), "): ", paste(col_headers, collapse = ", "))
-    message("  Row labels (", length(row_labels), "): ", 
+    message("  Found ", nrow(placeholder_cells), " cells with '_' placeholder")
+    message("  Unique columns (", length(col_headers), "): ", paste(col_headers, collapse = ", "))
+    message("  Unique rows (", length(row_labels), "): ", 
             paste(head(row_labels, 5), collapse = ", "),
             if (length(row_labels) > 5) paste0(" ... (", length(row_labels), " total)") else "")
     message("=============================\n")
     
     list(
       sheet_name = .sheet,
-      markers = markers,
       col_headers = col_headers,
       row_labels = row_labels,
-      col_positions = col_positions,
-      row_positions = row_positions,
+      placeholder_cells = placeholder_list,
       n_cols = length(col_headers),
-      n_rows = length(row_labels),
-      workbook = wb
+      n_rows = length(row_labels)
     )
   }) |>
     purrr::set_names(sheet_names)
   
-  # Remove NULL entries
   template_info <- purrr::compact(template_info)
   
   return(template_info)
-}
-
-
-#' Find Corner Markers in Excel Sheet
-#'
-#' Locates LU, RU, LB, RB, CS, CE markers in the sheet
-#'
-#' @param .data Dataframe of sheet data
-#' @return List with marker positions or NULL if not found
-#' @keywords internal
-find_corner_markers <- function(.data) {
-  
-  # Convert to matrix for easier searching
-  mat <- as.matrix(.data)
-  
-  # Find each marker
-  lu_pos <- which(mat == "LU", arr.ind = TRUE)
-  ru_pos <- which(mat == "RU", arr.ind = TRUE)
-  lb_pos <- which(mat == "LB", arr.ind = TRUE)
-  rb_pos <- which(mat == "RB", arr.ind = TRUE)
-  cs_pos <- which(mat == "CS", arr.ind = TRUE)
-  ce_pos <- which(mat == "CE", arr.ind = TRUE)
-  
-  # Check if all required markers found
-  if (nrow(lu_pos) == 0 || nrow(ru_pos) == 0 || 
-      nrow(lb_pos) == 0 || nrow(rb_pos) == 0) {
-    return(NULL)
-  }
-  
-  # Build result list
-  result <- list(
-    lu_row = lu_pos[1, 1],
-    lu_col = lu_pos[1, 2],
-    ru_row = ru_pos[1, 1],
-    ru_col = ru_pos[1, 2],
-    lb_row = lb_pos[1, 1],
-    lb_col = lb_pos[1, 2],
-    rb_row = rb_pos[1, 1],
-    rb_col = rb_pos[1, 2]
-  )
-  
-  # Add CS/CE if found
-  if (nrow(cs_pos) > 0) {
-    result$cs_row <- cs_pos[1, 1]
-    result$cs_col <- cs_pos[1, 2]
-  } else {
-    result$cs_row <- NULL
-    result$cs_col <- NULL
-  }
-  
-  if (nrow(ce_pos) > 0) {
-    result$ce_row <- ce_pos[1, 1]
-    result$ce_col <- ce_pos[1, 2]
-  } else {
-    result$ce_row <- NULL
-    result$ce_col <- NULL
-  }
-  
-  return(result)
 }
 
 

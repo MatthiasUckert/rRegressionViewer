@@ -385,50 +385,35 @@ app_server <- function(input, output, session, .app_data, .dir) {
   # === OUTPUT: Column mapping UI ===
   output$fmt_column_mapping_ui <- shiny::renderUI({
     req(template_info(), input$fmt_sheet_select, input$fmt_table_mapping != "")
-
+    
     info <- template_info()
     sheet_name <- input$fmt_sheet_select
     table_name <- input$fmt_table_mapping
-
+    
     if (!sheet_name %in% names(info)) {
       return(shiny::div("Error: Sheet not found in template"))
     }
-
+    
     sheet_info <- info[[sheet_name]]
     dashboard_cols <- get_available_columns(.app_data, table_name)
-
-    # Get column headers - handle different possible structures
     col_headers <- sheet_info$col_headers
-
-    # Debug: show what we got
+    
     if (is.null(col_headers) || length(col_headers) == 0) {
       return(shiny::div(
-        shiny::p("No column headers found in template.", style = "color: orange; font-weight: bold;"),
-        shiny::p("Column headers should be in the CS row, between CS and CE markers.",
-                 style = "font-size: 12px; margin-top: 10px;"),
-        shiny::p("Make sure:", style = "font-weight: bold; margin-top: 10px;"),
-        shiny::tags$ul(
-          shiny::tags$li("CS and CE markers are present in the column header row"),
-          shiny::tags$li("Column headers like (1), (2), (3)... are between CS and CE"),
-          shiny::tags$li("The first column after CS is for row labels and is automatically skipped")
-        ),
-        shiny::p("Check R console for detailed debug output.", style = "font-size: 11px; margin-top: 10px; color: #666;")
+        shiny::p("No column headers found in template.", style = "color: orange; font-weight: bold;")
       ))
     }
-
-    # Create compact mapping inputs with auto-matching
+    
+    # Create compact inline mapping inputs with auto-matching
     purrr::map(col_headers, function(.col) {
-      # Try to find a matching dashboard column
-      # Look for exact match first, then partial match
-      default_match <- ""
       col_str <- as.character(.col)
-
-      # Try exact match (case-insensitive)
+      
+      # Try to find a matching dashboard column
+      default_match <- ""
       exact_match <- dashboard_cols[tolower(dashboard_cols) == tolower(col_str)]
       if (length(exact_match) > 0) {
         default_match <- exact_match[1]
       } else {
-        # Try partial match - if template col is like "(1)", look for "Main (1)" or similar
         partial_matches <- dashboard_cols[grepl(gsub("[^A-Za-z0-9]", "", col_str),
                                                 gsub("[^A-Za-z0-9]", "", dashboard_cols),
                                                 ignore.case = TRUE)]
@@ -436,11 +421,11 @@ app_server <- function(input, output, session, .app_data, .dir) {
           default_match <- partial_matches[1]
         }
       }
-
+      
       shiny::div(
-        style = "margin-bottom: 8px;",
+        style = "display: flex; align-items: center; margin-bottom: 8px;",
         shiny::div(
-          style = "font-weight: bold; font-size: 12px; margin-bottom: 3px; color: #555;",
+          style = "font-weight: bold; font-size: 12px; color: #555; min-width: 80px; margin-right: 10px;",
           col_str
         ),
         shiny::selectInput(
@@ -457,46 +442,35 @@ app_server <- function(input, output, session, .app_data, .dir) {
   # === OUTPUT: Row mapping UI ===
   output$fmt_row_mapping_ui <- shiny::renderUI({
     req(template_info(), input$fmt_sheet_select, input$fmt_table_mapping != "")
-
+    
     info <- template_info()
     sheet_name <- input$fmt_sheet_select
     table_name <- input$fmt_table_mapping
-
+    
     if (!sheet_name %in% names(info)) {
       return(shiny::div("Error: Sheet not found in template"))
     }
-
+    
     sheet_info <- info[[sheet_name]]
     dashboard_rows <- get_available_rows(.app_data, table_name)
-
-    # Get row labels - handle different possible structures
     row_labels <- sheet_info$row_labels
-
-    # Debug: show what we got
+    
     if (is.null(row_labels) || length(row_labels) == 0) {
       return(shiny::div(
-        shiny::p("No row labels found in template.", style = "color: orange; font-weight: bold;"),
-        shiny::p("Only rows with '...' placeholders in their data cells are shown for mapping.",
-                 style = "font-size: 12px; margin-top: 10px;"),
-        shiny::p("This typically means rows like 'Controls', 'Firm FE', etc. with Y/N values are excluded.",
-                 style = "font-size: 12px;"),
-        shiny::p("Check R console for detailed debug output.", style = "font-size: 11px; margin-top: 10px; color: #666;")
+        shiny::p("No row labels found in template.", style = "color: orange; font-weight: bold;")
       ))
     }
-
-    # Create compact mapping inputs with auto-matching
+    
+    # Create compact inline mapping inputs with auto-matching
     purrr::map(row_labels, function(.row) {
-      # Try to find a matching dashboard row
-      # Look for exact match first, then partial match
-      default_match <- ""
       row_str <- as.character(.row)
-
-      # Try exact match (case-insensitive)
+      
+      # Try to find a matching dashboard row
+      default_match <- ""
       exact_match <- dashboard_rows[tolower(dashboard_rows) == tolower(row_str)]
       if (length(exact_match) > 0) {
         default_match <- exact_match[1]
       } else {
-        # Try partial match - check if row_str is contained in any dashboard row
         partial_matches <- dashboard_rows[grepl(gsub("[^A-Za-z0-9]", "", row_str),
                                                 gsub("[^A-Za-z0-9]", "", dashboard_rows),
                                                 ignore.case = TRUE)]
@@ -504,11 +478,11 @@ app_server <- function(input, output, session, .app_data, .dir) {
           default_match <- partial_matches[1]
         }
       }
-
+      
       shiny::div(
-        style = "margin-bottom: 8px;",
+        style = "display: flex; align-items: center; margin-bottom: 8px;",
         shiny::div(
-          style = "font-weight: bold; font-size: 12px; margin-bottom: 3px; color: #555;",
+          style = "font-weight: bold; font-size: 12px; color: #555; min-width: 150px; margin-right: 10px; flex-shrink: 0;",
           row_str
         ),
         shiny::selectInput(
