@@ -1,19 +1,6 @@
 #' Read Excel Template and Detect Structure
 #'
-#' Reads an Excel template file and detects the data region using corner markers.
-#' 
-#' Expected template structure:
-#' - LU (Left-Upper): Top-left corner of the table region
-#' - RU (Right-Upper): Top-right corner of the table region  
-#' - LB (Left-Bottom): Bottom-left corner of the table region
-#' - RB (Right-Bottom): Bottom-right corner of the table region
-#' - CS (Column Start): Marks the row containing column headers
-#' - CE (Column End): Marks the end of column headers in the CS row
-#' - "...": Placeholder in cells where data should be written
-#'
-#' The first column of the table (LU_col + 1) contains row labels (variable names).
-#' Column headers are extracted from the CS row, starting from CS_col + 2 (skipping row label column).
-#' Row labels are extracted from the first table column (LU_col + 1), between CS row and LB row.
+#' Reads the Excel template matrix exactly as-is and identifies all column headers and row labels
 #'
 #' @param .path Character. Path to template Excel file
 #' @return List with template info for each sheet
@@ -30,7 +17,7 @@ read_template_structure <- function(.path) {
     # Load workbook
     wb <- openxlsx2::wb_load(.path)
     
-    # Read full sheet to find markers
+    # ⭐ Read full sheet as-is - NO assumptions about structure
     full_data <- openxlsx2::wb_to_df(
       wb,
       sheet = .sheet,
@@ -38,7 +25,10 @@ read_template_structure <- function(.path) {
       start_row = 1
     )
     
-    # Find corner markers
+    message("\n=== Reading Sheet: ", .sheet, " ===")
+    message("Sheet dimensions: ", nrow(full_data), " rows x ", ncol(full_data), " columns")
+    
+    # Find corner markers in the actual matrix
     markers <- find_corner_markers(full_data)
     
     if (is.null(markers)) {
@@ -46,103 +36,101 @@ read_template_structure <- function(.path) {
       return(NULL)
     }
     
-    # ⭐ Extract column headers between CS and CE markers
-    col_headers <- character(0)
-    if (!is.null(markers$cs_row) && !is.null(markers$ce_row)) {
-      # Column headers are in the CS row, between CS and CE columns
-      # Skip the first table column (after CS) which contains row labels
-      start_col <- markers$cs_col + 2  # Skip CS marker and row label column
-      end_col <- markers$ce_col - 1    # Before CE marker
+    message("Markers found:")
+    message("  LU: row ", markers$lu_row, ", col ", markers$lu_col)
+    message("  RU: row ", markers$ru_row, ", col ", markers$ru_col)
+    message("  LB: row ", markers$lb_row, ", col ", markers$lb_col)
+    message("  RB: row ", markers$rb_row, ", col ", markers$rb_col)
+    message("  CS: row ", markers$cs_row, ", col ", markers$cs_col)
+    message("  CE: row ", markers$ce_row, ", col ", markers$ce_col)
+    
+    # ⭐ STEP 1: Extract column headers from CS row
+    # Read from CS column to CE column in the CS row
+    cs_row <- markers$cs_row
+    start_col <- markers$cs_col + 1  # Skip the CS marker itself
+    end_col <- markers$ce_col - 1     # Stop before CE marker
+    
+    message("\nReading column headers from row ", cs_row, ", columns ", start_col, " to ", end_col)
+    
+    col_positions <- list()
+    for (excel_col in start_col:end_col) {
+      header_value <- as.character(full_data[cs_row, excel_col])
       
-      if (start_col <= end_col) {
-        col_headers <- as.character(full_data[markers$cs_row, start_col:end_col])
-        # Filter out NA, empty strings, and the string "NA"
-        col_headers <- col_headers[!is.na(col_headers) & col_headers != "" & col_headers != "NA"]
+      # Debug: show what we're reading
+      message("  Col ", excel_col, ": '", header_value, "'")
+      
+      # Skip the first column after CS (that's the row labels column)
+      if (excel_col == start_col) {
+        message("    -> SKIPPED (row labels column)")
+        next
+      }
+      
+      # Only include non-empty headers
+      if (!is.na(header_value) && header_value != "" && header_value != "NA") {
+        col_positions[[length(col_positions) + 1]] <- list(
+          header = header_value,
+          excel_col = excel_col
+        )
       }
     }
     
-    # ⭐ Extract row labels between CS and LB rows, in the first table column
-    # Only include rows that have "..." placeholders in their data cells
-    row_labels <- character(0)
-    if (!is.null(markers$cs_row) && !is.null(markers$lb_row)) {
-      # Row labels are in the first column of the TABLE (column after LU marker)
-      # NOT column 1 of the Excel file!
-      row_label_col <- markers$lu_col + 1
+    # ⭐ STEP 2: Extract row labels
+    # Read from row after CS to row before LB, in the first data column (CS_col + 1)
+    row_label_col <- markers$cs_col + 1
+    start_row <- markers$cs_row + 1
+    end_row <- markers$lb_row - 1
+    
+    message("\nReading row labels from column ", row_label_col, ", rows ", start_row, " to ", end_row)
+    
+    row_positions <- list()
+    for (excel_row in start_row:end_row) {
+      label_value <- as.character(full_data[excel_row, row_label_col])
       
-      if ((markers$cs_row + 1) <= (markers$lb_row - 1)) {
-        # Read raw data first for debugging
-        raw_labels <- full_data[(markers$cs_row + 1):(markers$lb_row - 1), row_label_col]
-        
-        # Debug: show what we're reading
-        message("  DEBUG - Reading row labels from column ", row_label_col)
-        message("  DEBUG - Raw labels: ", paste(head(as.character(raw_labels), 5), collapse=" | "))
-        
-        # For each row, check if it has "..." in any data cell
-        # Data cells are from (lu_col + 2) to (ru_col - 1) or similar
-        data_start_col <- markers$lu_col + 2
-        data_end_col <- markers$ce_col - 1
-        
-        rows_to_include <- c()
-        for (i in seq_along(raw_labels)) {
-          row_idx <- markers$cs_row + i
-          label <- as.character(raw_labels[i])
-          
-          # Skip if label is NA or empty
-          if (is.na(label) || label == "" || label == "NA") next
-          
-          # Check if this row has any "_" in data columns
-          row_data <- full_data[row_idx, data_start_col:data_end_col]
-          has_placeholder <- any(row_data == "_", na.rm = TRUE)
-          
-          if (has_placeholder) {
-            rows_to_include <- c(rows_to_include, label)
-          }
-        }
-        
-        row_labels <- rows_to_include
-        message("  DEBUG - Filtered to ", length(row_labels), " rows with '...' placeholders")
+      # Debug: show first 10 rows
+      if (excel_row - start_row < 10) {
+        message("  Row ", excel_row, ": '", label_value, "'")
+      }
+      
+      # Only include non-empty labels
+      if (!is.na(label_value) && label_value != "" && label_value != "NA") {
+        row_positions[[length(row_positions) + 1]] <- list(
+          label = label_value,
+          excel_row = excel_row
+        )
       }
     }
     
-    # Debug output
-    message("Sheet: ", .sheet)
-    message("  Markers found - LU: (", markers$lu_row, ",", markers$lu_col, 
-            "), RU: (", markers$ru_row, ",", markers$ru_col, ")")
-    message("  LB: (", markers$lb_row, ",", markers$lb_col, 
-            "), RB: (", markers$rb_row, ",", markers$rb_col, ")")
-    if (!is.null(markers$cs_row)) {
-      message("  CS: (", markers$cs_row, ",", markers$cs_col, 
-              "), CE: (", markers$ce_row, ",", markers$ce_col, ")")
-      message("  Note: Column headers extracted from row ", markers$cs_row, 
-              ", cols ", markers$cs_col + 2, " to ", markers$ce_col - 1)
-      message("  Note: Row labels extracted from col ", markers$lu_col + 1, 
-              " (first table column), rows ", markers$cs_row + 1, " to ", markers$lb_row - 1)
-      message("  Note: Only rows with '...' placeholders in data cells are included")
+    if (end_row - start_row >= 10) {
+      message("  ... (", length(row_positions), " total row labels)")
     }
-    message("  Column headers (", length(col_headers), "): ", 
-            if (length(col_headers) > 0) paste(head(col_headers, 10), collapse = ", ") else "none",
-            if (length(col_headers) > 10) "..." else "")
+    
+    # Extract for UI
+    col_headers <- sapply(col_positions, function(x) x$header)
+    row_labels <- sapply(row_positions, function(x) x$label)
+    
+    # Summary
+    message("\nSummary:")
+    message("  Column headers (", length(col_headers), "): ", paste(col_headers, collapse = ", "))
     message("  Row labels (", length(row_labels), "): ", 
-            if (length(row_labels) > 0) paste(head(row_labels, 8), collapse = ", ") else "NONE - check DEBUG output above",
-            if (length(row_labels) > 8) paste0("... (", length(row_labels), " total)") else "")
-    message("  ---")
+            paste(head(row_labels, 5), collapse = ", "),
+            if (length(row_labels) > 5) paste0(" ... (", length(row_labels), " total)") else "")
+    message("=============================\n")
     
     list(
       sheet_name = .sheet,
       markers = markers,
       col_headers = col_headers,
       row_labels = row_labels,
+      col_positions = col_positions,
+      row_positions = row_positions,
       n_cols = length(col_headers),
       n_rows = length(row_labels),
-      # Data starts after CS row, in the column after row labels
-      data_start_row = if (!is.null(markers$cs_row)) markers$cs_row + 1 else NULL,
-      data_start_col = if (!is.null(markers$lu_col)) markers$lu_col + 2 else NULL,  # After LU + row label column
       workbook = wb
     )
   }) |>
     purrr::set_names(sheet_names)
   
-  # Remove NULL entries (sheets without markers)
+  # Remove NULL entries
   template_info <- purrr::compact(template_info)
   
   return(template_info)

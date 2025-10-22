@@ -155,6 +155,7 @@ create_formatter_tab <- function(.app_data) {
         ),
         
         # Preview Section (Full Width)
+        # Preview Section (Full Width)
         shiny::fluidRow(
           shiny::column(
             width = 12,
@@ -163,7 +164,7 @@ create_formatter_tab <- function(.app_data) {
               style = "background-color: white; padding: 15px; border-radius: 4px; display: none;",
               shiny::h4(shiny::icon("eye"), " Preview", style = "margin-top: 0; margin-bottom: 15px; font-size: 18px;"),
               shiny::div(
-                style = "overflow-x: auto;",
+                style = "overflow-x: auto; overflow-y: auto; max-height: 600px; border: 1px solid #ddd;",
                 shiny::uiOutput("fmt_preview_table")
               )
             )

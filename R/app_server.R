@@ -589,4 +589,58 @@ app_server <- function(input, output, session, .app_data, .dir) {
       )
     }
   )
+  
+  # === OUTPUT: Preview table ===
+  output$fmt_preview_table <- shiny::renderUI({
+    req(template_info(), input$fmt_sheet_select, input$fmt_table_mapping != "")
+    
+    info <- template_info()
+    sheet_name <- input$fmt_sheet_select
+    table_name <- input$fmt_table_mapping
+    
+    if (!sheet_name %in% names(info)) {
+      return(shiny::div("Error: Sheet not found"))
+    }
+    
+    sheet_info <- info[[sheet_name]]
+    meta <- .app_data$metadata[[table_name]]
+    df <- .app_data$data[[table_name]]
+    
+    # Collect current filters
+    filters <- purrr::map(meta$filter_cols, function(.col) {
+      input[[paste0("fmt_filter_", sheet_name, "_", .col)]]
+    }) |>
+      purrr::set_names(meta$filter_cols)
+    
+    # Check if all filters are ready
+    if (any(sapply(filters, is.null))) {
+      return(shiny::div("Loading filters...", style = "color: #666; font-style: italic;"))
+    }
+    
+    # Apply filters to data
+    filtered_df <- get_filtered_data(.df = df, .filters = filters)
+    
+    # Collect column mappings
+    col_mapping <- list()
+    for (.col in sheet_info$col_headers) {
+      input_id <- paste0("fmt_col_map_", sheet_name, "_", gsub("[^A-Za-z0-9]", "_", .col))
+      col_mapping[[.col]] <- input[[input_id]]
+    }
+    
+    # Collect row mappings
+    row_mapping <- list()
+    for (.row in sheet_info$row_labels) {
+      input_id <- paste0("fmt_row_map_", sheet_name, "_", gsub("[^A-Za-z0-9]", "_", .row))
+      row_mapping[[.row]] <- input[[input_id]]
+    }
+    
+    # Generate preview
+    generate_preview_table(
+      .sheet_info = sheet_info,
+      .df = filtered_df,
+      .col_mapping = col_mapping,
+      .row_mapping = row_mapping,
+      .term_col = meta$term_col
+    )
+  })
 }

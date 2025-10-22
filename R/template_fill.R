@@ -69,7 +69,7 @@ fill_excel_template <- function(.template_path, .template_info, .mapping, .app_d
 
 #' Fill Single Sheet with Data
 #'
-#' Fills one sheet of the workbook with mapped data
+#' Fills one sheet of the workbook with mapped data based on user mappings
 #'
 #' @param .wb Workbook object
 #' @param .sheet_name Character. Sheet name
@@ -82,33 +82,29 @@ fill_excel_template <- function(.template_path, .template_info, .mapping, .app_d
 #' @keywords internal
 fill_sheet_data <- function(.wb, .sheet_name, .sheet_info, .df, .col_mapping, .row_mapping, .term_col) {
   
-  markers <- .sheet_info$markers
-  
-  # Starting position for data (first row after CS, first col after row labels)
-  start_row <- markers$cs_row + 1
-  start_col <- markers$lu_col + 2  # After LU marker + row label column
-  
-  # Process each template column
-  for (i in seq_along(.sheet_info$col_headers)) {
+  # ⭐ For each row mapping
+  for (row_info in .sheet_info$row_positions) {
     
-    template_col_name <- .sheet_info$col_headers[i]
-    dashboard_col_name <- .col_mapping[[template_col_name]]
+    template_row_label <- row_info$label
+    dashboard_row_name <- .row_mapping[[template_row_label]]
     
-    if (is.null(dashboard_col_name) || dashboard_col_name == "") {
-      next  # Skip unmapped columns
+    # Skip if row not mapped
+    if (is.null(dashboard_row_name) || dashboard_row_name == "") {
+      next
     }
     
-    # Process each template row
-    for (j in seq_along(.sheet_info$row_labels)) {
+    # ⭐ For each column mapping
+    for (col_info in .sheet_info$col_positions) {
       
-      template_row_name <- .sheet_info$row_labels[j]
-      dashboard_row_name <- .row_mapping[[template_row_name]]
+      template_col_header <- col_info$header
+      dashboard_col_name <- .col_mapping[[template_col_header]]
       
-      if (is.null(dashboard_row_name) || dashboard_row_name == "") {
-        next  # Skip unmapped rows
+      # Skip if column not mapped
+      if (is.null(dashboard_col_name) || dashboard_col_name == "") {
+        next
       }
       
-      # Get the value from dashboard data
+      # Get the value from dashboard
       value <- get_cell_value(
         .df = .df,
         .term_col = .term_col,
@@ -116,17 +112,14 @@ fill_sheet_data <- function(.wb, .sheet_name, .sheet_info, .df, .col_mapping, .r
         .col_name = dashboard_col_name
       )
       
-      # Write to workbook (preserve existing formatting)
+      # Write to Excel at exact position
       if (!is.na(value) && value != "") {
-        excel_row <- start_row + j - 1
-        excel_col <- start_col + i - 1
-        
         .wb <- openxlsx2::wb_add_data(
           .wb,
           sheet = .sheet_name,
           x = value,
-          start_row = excel_row,
-          start_col = excel_col,
+          start_row = row_info$excel_row,
+          start_col = col_info$excel_col,
           col_names = FALSE
         )
       }
@@ -135,7 +128,6 @@ fill_sheet_data <- function(.wb, .sheet_name, .sheet_info, .df, .col_mapping, .r
   
   return(.wb)
 }
-
 
 #' Get Cell Value from Dashboard Data
 #'
